@@ -592,13 +592,14 @@
     const blue = Math.max(0, Number(blueGames) || 0);
     const red = Math.max(0, Number(redGames) || 0);
     if (blue === red) throw new Error('De einduitslag kan niet gelijk zijn.');
+    const complete = PadelScoring.isFullyPlayedSet({ blue_games: blue, red_games: red });
     return finishMatch(id, {
       blue_games: blue,
       red_games: red,
       point_snapshot: null,
-      set_completed: true,
-      timed_out: false,
-      winner_team: blue > red ? 'blue' : 'red'
+      set_completed: complete,
+      timed_out: !complete,
+      winner_team: complete ? (blue > red ? 'blue' : 'red') : null
     });
   }
 
@@ -665,17 +666,12 @@
   async function endSession(playdayId) {
     const playday = cache.playdays.find(p => p.id === playdayId);
     if (!canHost(playday)) throw new Error('Alleen de host kan afsluiten.');
+    if (playday?.status === 'closed') return loadAll();
     if (cache.matches.some(m => m.playday_id === playdayId && m.status === 'active' && m.started_at && !m.deleted_at)) {
       throw new Error('Rond eerst alle actieve wedstrijden af.');
     }
-    const reviewDelete = await client.from('session_reviews').delete().eq('playday_id', playdayId);
-    if (reviewDelete.error) fail(reviewDelete.error);
-    const attendanceUpdate = await client.from('attendance').update({ status: 'done' }).eq('playday_id', playdayId);
-    if (attendanceUpdate.error) fail(attendanceUpdate.error);
-    const playdayUpdate = await client.from('playdays').update({
-      session_status: 'review', review_started_at: new Date().toISOString()
-    }).eq('id', playdayId);
-    if (playdayUpdate.error) fail(playdayUpdate.error);
+    const { error } = await client.rpc('close_playday', { p_playday_id: playdayId });
+    if (error) fail(error);
     return loadAll();
   }
 

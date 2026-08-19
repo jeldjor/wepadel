@@ -358,7 +358,7 @@
       <section class="flat-section rsvp-section"><h2>Jouw status</h2><div class="choice-grid luxe-choices"><button class="choice ${selectedResponse==='playing'?'selected':''}" data-rsvp="playing" ${state.pendingRsvp?'disabled':''}><b class="choice-mark">✓</b><span>Ik speel mee</span></button>${mineCourtComplete?(outgoingSwapFor(pd.id)?`<button class="choice swap requested" disabled><b class="choice-mark">⇄</b><span>Ruilverzoek gedaan</span></button>`:`<button class="choice swap" data-request-swap><b class="choice-mark">⇄</b><span>Ruilen</span></button>`):`<button class="choice no ${selectedResponse==='not_playing'?'selected':''}" data-rsvp="not_playing" ${state.pendingRsvp?'disabled':''}><b class="choice-mark">✕</b><span>Ik kan niet</span></button>`}</div>${selectedResponse?`<p class="rsvp-current ${selectedResponse==='playing'?'yes':'no'}">${selectedResponse==='playing'?'✓ Je speelt mee':'✕ Je speelt niet mee'}</p>`:'<p class="rsvp-current open">Nog niet gekozen</p>'}</section>
       <section class="flat-section signup-overview"><div class="section-title signup-title"><h2>Spelers (${all.length})</h2><div class="signup-title-actions"><span class="host-pill">Host: ${playerNameMarkup(pd.host_id)}</span>${admin?'<button class="btn primary small" data-admin-add-playday-player>+ Speler</button>':''}</div></div><div class="signup-courts">${courtGroups}</div>${renderReserveList(reserves,users,admin)}</section>
       ${progressTitle?`<section class="flat-section progress-panel"><div class="progress-head"><div class="progress-icon">▣</div><div><strong>${progressTitle}</strong><span>${progressText}</span></div></div><div class="bar-track"><i style="width:${progressWidth}%"></i></div>${paymentAction}</section>`:''}
-      ${readyButton}${renderReviewPanel(pd,attendance,reviews,myReview,host)}
+      ${readyButton}${renderClosePanel(pd,host,active.length)}
       ${isAdmin()?`<section class="flat-section admin-actions"><button class="btn ghost" data-edit-pd>Speeldag wijzigen</button><button class="btn danger" data-delete-pd>Speeldag verwijderen</button></section>`:''}`;
   }
 
@@ -405,7 +405,11 @@
       </div>
     </article>`;
   }
-  function renderReviewPanel(pd,attendance,reviews,myReview,host){ if(!['review','host_review','approved'].includes(pd.session_status))return''; const rejectCount=reviews.filter(r=>r.decision==='reject').length; if(pd.session_status==='approved')return `<section class="flat-section"><span class="badge green">Goedgekeurd</span><h2>Speeldag definitief</h2><p class="muted">${rejectCount} afkeuring${rejectCount===1?'':'en'}.</p></section>`; if(pd.session_status==='host_review')return `<section class="flat-section review-banner"><h2>Controle door host nodig</h2><p>${rejectCount} spelers hebben de sessie afgekeurd.</p>${host?'<button class="btn primary" data-resolve-session>Gecontroleerd en definitief maken</button>':'<span class="badge yellow">Wachten op host</span>'}</section>`; const participated=attendance.some(a=>a.user_id===current().id); return `<section class="flat-section review-banner"><h2>Beoordeel de hele speeldag</h2><p>Controleer alle wedstrijden en keur de sessie in één keer goed of af.</p>${participated&&!myReview?'<div class="action-row"><button class="btn primary" data-review="approve">Alles klopt</button><button class="btn danger" data-review="reject">Er klopt iets niet</button></div>':myReview?`<span class="badge ${myReview.decision==='approve'?'green':'yellow'}">Jouw keuze: ${myReview.decision==='approve'?'goedgekeurd':'afgekeurd'}</span>`:'<p class="muted">Alleen deelnemers kunnen beoordelen.</p>'}</section>`; }
+  function renderClosePanel(pd, host, activeCount){
+    if(pd.status==='closed') return `<section class="flat-section review-banner"><span class="badge green">Afgesloten</span><h2>Speeldag definitief</h2><p class="muted">De host heeft deze speeldag afgesloten. Andere spelers hoeven niets goed te keuren.</p></section>`;
+    if(!host) return '';
+    return `<section class="flat-section review-banner"><h2>Speeldag afsluiten</h2><p>Vul eerst alle uitslagen in. Daarna wordt de speeldag direct definitief en verschijnt hij in Historie.</p>${activeCount?`<p class="muted">Nog ${activeCount} actieve wedstrijd${activeCount===1?'':'en'}.</p>`:`<button class="btn primary full" data-end-session>Speeldag afsluiten</button>`}</section>`;
+  }
   function renderRanking(){
     const ordered=S.aggregate(DB.listUsers().filter(u=>u.active),matches()),rows=ordered.map(r=>statsFor(r.id));
     const me=current();
@@ -474,9 +478,7 @@
     $('[data-live-toggle]')?.addEventListener('change',e=>changeLiveScoring(e.target.checked));
     $$('[data-view-scoreboard]').forEach(b=>b.onclick=()=>openScoreboard(b.dataset.viewScoreboard,true));
     $$('[data-delete-match]').forEach(b=>b.onclick=()=>confirmAction('Wedstrijd verwijderen?','De uitslag verdwijnt uit de ranglijst.',()=>DB.deleteMatch(b.dataset.deleteMatch)));
-    $('[data-end-session]')?.addEventListener('click',()=>confirmAction('Speeldag afsluiten?','Daarna beoordelen alle deelnemers alle wedstrijden in één keer.',()=>DB.endSession(state.selectedPlaydayId)));
-    $$('[data-review]').forEach(b=>b.onclick=()=>reviewSession(b.dataset.review));
-    $('[data-resolve-session]')?.addEventListener('click',()=>confirmAction('Definitief goedkeuren?','Je bevestigt als host dat alle correcties zijn verwerkt.',()=>DB.resolveSession(state.selectedPlaydayId)));
+    $('[data-end-session]')?.addEventListener('click',()=>confirmAction('Speeldag afsluiten?','De host bevestigt dat de uitslagen kloppen. Daarna is de speeldag definitief en hoeven andere spelers niets goed te keuren.',()=>DB.endSession(state.selectedPlaydayId)));
     $('[data-edit-pd]')?.addEventListener('click',()=>openPlaydayForm(selectedPlayday()));
     $$('[data-match-info]').forEach(b=>b.onclick=()=>openMatchInfo(b.dataset.matchInfo));
     $$('[data-admin-tab]').forEach(b=>b.onclick=()=>{state.adminTab=b.dataset.adminTab;state.adminPage=0;render();});
