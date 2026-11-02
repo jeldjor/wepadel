@@ -413,7 +413,7 @@
   function renderRanking(){
     const ordered=S.aggregate(DB.listUsers().filter(u=>u.active),matches()),rows=ordered.map(r=>statsFor(r.id));
     const me=current();
-    return `${uiHeader('Statistieken','')}
+    return `${uiHeader('Stand','')}
       <section class="ranking-only"><div class="section-title"><h2>Competitieranglijst</h2><span class="muted small-note">Tik op een speler</span></div><div class="competition-list detailed-ranking">${rows.map((r,i)=>`<button class="competition-row detailed ${r.id===me.id?'me':''}" data-player="${r.id}"><span class="ranking-player-head"><span class="rank-index">${i+1}</span><span class="player-cell"><strong class="avatar-name">${esc(r.name)}${avatarMarkup(r.id)}</strong><i class="form-line">${r.recent.map(x=>`<em class="${x==='W'?'win':x==='V'?'loss':'draw'}">${x}</em>`).join('')||'<em>–</em>'}</i></span><span class="chev">›</span></span><span class="ranking-metrics"><span><b>${r.points}</b><small>Punten</small></span><span><b>${r.played}</b><small>Wed.</small></span><span><b>${r.wins}-${r.losses}</b><small>W-V</small></span><span><b>${r.winPct}%</b><small>Winst</small></span><span><b>${r.setsWon}-${r.setsLost}</b><small>Sets</small></span><span><b>${r.gamesWon}-${r.gamesLost}</b><small>Games</small></span><span><b>${r.gameDiff>0?'+':''}${r.gameDiff}</b><small>Saldo</small></span></span></button>`).join('')||'<div class="empty-state">Nog geen spelers.</div>'}</div></section>
       <section class="flat-section scoring-note"><h2>Puntentelling</h2><p class="muted">Elke gewonnen game is 1 punt. De winnaar van een volledig uitgespeelde wedstrijd krijgt 3 bonuspunten.</p></section>`;
   }
