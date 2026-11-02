@@ -640,7 +640,7 @@
   }
 
   function openDayMatches(){
-    const pd=selectedPlayday(); if(!pd||!isPlaydayToday(pd))return;
+    const pd=selectedPlayday(); if(!pd||(!isPlaydayToday(pd)&&!isAdmin()))return;
     const host=canHost(pd),users=userMap(),dayMatches=DB.listMatches(pd.id).filter(m=>!m.deleted_at),active=dayMatches.filter(m=>m.status==='active'&&m.started_at);
     const hostControls=host?`<section class="live-mode-panel"><div><strong>Live score</strong><small>${liveScoringEnabled(pd)?'Punt voor punt en commando’s':'Alleen einduitslag invullen'}</small></div><label class="inline-switch"><input type="checkbox" data-live-toggle ${liveScoringEnabled(pd)?'checked':''}><i></i></label></section><div class="section-title popup-match-title"><h3>Banen</h3><button class="btn primary small" data-new-match>+ Wedstrijd</button></div><div class="grid two">${Array.from({length:pd.court_count},(_,i)=>renderCourt(pd,i+1,active.find(m=>m.court_number===i+1))).join('')}</div>`:'';
     modal('Ready to play!',`${hostControls}<section class="popup-match-list"><div class="section-title"><h3>Wedstrijden (${dayMatches.length})</h3></div><div class="open-rows">${dayMatches.map(m=>renderMatchRow(m,users,host,pd)).join('')||'<div class="empty-state">Nog geen wedstrijden aangemaakt.</div>'}</div></section>`,bindMatchPopup);
